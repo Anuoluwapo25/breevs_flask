@@ -33,8 +33,9 @@ application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_msg
 async def setup_webhook():
     await application.bot.set_webhook(WEBHOOK_URL)
 
-@app.route(f'/{TOKEN}', methods=['POST'])
+@app.route(f'/webhook/{TOKEN}', methods=['POST'])
 def webhook():
+    print("Webhook triggered!")
     update = Update.de_json(request.get_json(force=True), application.bot)
     application.update_queue.put(update)
     return "ok", 200
