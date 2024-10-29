@@ -1,47 +1,55 @@
+from flask import Flask, request, Response
+import requests
 import os
-from flask import Flask, request
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = Flask(__name__)
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-WEBHOOK_URL = f"https://breevs-flask.onrender.com/webhook/{TOKEN}"
+BOT_TOKEN = 'TELEGRAM_BOT_TOKEN'
+WEBHOOK_URL = 'https://breevs-flask.onrender.com/webhook'
 
-application = Application.builder().token(TOKEN).build()
+def setup_webhook():
+    """Setup webhook for Telegram bot"""
+    setup_url = f'https://api.telegram.org/bot{BOT_TOKEN}/setWebhook'
+    response = requests.post(setup_url, json={'url': WEBHOOK_URL})
+    if response.status_code == 200:
+        print("Webhook setup successful")
+        return response.json()
+    print("Webhook setup failed")
+    return response.json()
 
-async def start(update: Update, context):
-    await update.message.reply_text("Welcome! Type /info to get info.")
-
-async def ranking_putaria(update: Update, context):
-    await update.message.reply_text("This is the info you requested.")
-
-async def echo_msg(update: Update, context):
-    text = update.message.text
-    await update.message.reply_text(f"You said: {text}")
-
-
-
-# Add handlers to the application
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("info", ranking_putaria))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_msg))
-
-async def setup_webhook():
-    await application.bot.set_webhook(WEBHOOK_URL)
-
-@app.route(f'/webhook/{TOKEN}', methods=['POST'])
+@app.route('/webhook', methods=['POST'])
 def webhook():
-    print("Webhook triggered!")
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    application.update_queue.put(update)
-    return "ok", 200
+    """Handle incoming updates from Telegram"""
+    if request.method == 'POST':
+        # Parse the update
+        update = request.get_json()
+        
+        # Check if we received a message
+        if 'message' in update:
+            chat_id = update['message']['chat']['id']
+            
+            # Check if the message contains text
+            if 'text' in update['message']:
+                message_text = update['message']['text']
+                
+                # Example: Echo the received message back
+                send_message(chat_id, f"You said: {message_text}")
+        
+        return Response('ok', status=200)
+    
+    return Response(status=403)
+
+def send_message(chat_id, text):
+    """Send message back to Telegram"""
+    url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage'
+    payload = {
+        'chat_id': chat_id,
+        'text': text
+    }
+    requests.post(url, json=payload)
 
 if __name__ == '__main__':
-    import asyncio
-    asyncio.run(setup_webhook())
-
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+    
+    setup_webhook()
+   
+    app.run(host='0.0.0.0', port=5000, ssl_context='adhoc')
