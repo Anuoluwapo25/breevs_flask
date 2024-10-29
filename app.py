@@ -23,18 +23,12 @@ async def echo_msg(update: Update, context):
     text = update.message.text
     await update.message.reply_text(f"You said: {text}")
 
-async def echo_file(update: Update, context):
-    await update.message.reply_text("I received your file!")
 
-async def echo_sticker(update: Update, context):
-    await update.message.reply_text("Nice sticker!")
 
 # Add handlers to the application
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("info", ranking_putaria))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_msg))
-application.add_handler(MessageHandler(filters.VIDEO | filters.PHOTO | filters.DOCUMENT, echo_file))
-application.add_handler(MessageHandler(filters.STICKER, echo_sticker))
 
 async def setup_webhook():
     await application.bot.set_webhook(WEBHOOK_URL)
